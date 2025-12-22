@@ -1,0 +1,46 @@
+html, body {
+    background: #F5EDED;
+    margin: 0;
+    padding: 0;
+}
+
+.App {
+    font-family: "Ubuntu", sans-serif;
+    position: relative;
+    height: 100%;
+    text-align: center;
+    color: #C22727;
+    background: #F5EDED;
+}
+
+.lds-dual-ring {
+  color: #1c4c5b
+}
+.lds-dual-ring,
+.lds-dual-ring:after {
+  box-sizing: border-box;
+}
+.lds-dual-ring {
+  display: inline-block;
+  width: 80px;
+  height: 80px;
+}
+.lds-dual-ring:after {
+  content: " ";
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 8px;
+  border-radius: 50%;
+  border: 6.4px solid currentColor;
+  border-color: currentColor transparent currentColor transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+@keyframes lds-dual-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
