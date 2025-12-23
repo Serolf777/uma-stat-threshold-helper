@@ -1,3 +1,11 @@
+# Uma Stat Threshold Helper
+
+Custom calculator for helping determine optimized load-outs given user parameters.
+
+TODO: Serve real results given user input, allow deck saving, data analytics using Plotly.
+
+Uses npm front end.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
