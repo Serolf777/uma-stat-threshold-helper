@@ -1,23 +1,38 @@
-import { FC, MouseEvent, useState, useMemo } from 'react';
+import { FC, MouseEvent, useState, useMemo, useEffect } from 'react';
 import './uma-project.scss';
 import { FormProvider, useForm } from 'react-hook-form';
 import Dropdown from '../shared/dropdown.tsx';
-import { staticUmaList, statTypes } from '../shared/constants/constants.tsx';
+import { staticUmaList, cardTypes, statTypes, umaStats } from '../shared/constants/constants.tsx';
 import SupportCards from './supportCards.tsx';
 import cards from './cards/cards.tsx';
 import { RarityFilter } from './cards/cards-interfaces.tsx';
-import { defaultLbFilter } from './constants/constants.tsx';
+import { defaultLbFilter, SupportCardScore, weights } from './constants/constants.tsx';
 import { SupportCard } from './cards/cards-interfaces.tsx';
+import processCards from './utilities/processCards.tsx';
 
 const UmaProject: FC = () => {
     const methods = useForm();
+    const { getValues, setValue, register } = methods;
     const [raritiesFilter, setRaritiesFilter] = useState<RarityFilter[]>(defaultLbFilter);
     const [statSelected, setStatSelected] = useState<number | null>(0);
     const [selectedCards, setSelectedCards] = useState<SupportCard[]>([]);
+    const [umaSelected, setUmaSelected] = useState<string>("Oguri Cap");
+    const [umaScores, setUmaScores] = useState<SupportCardScore[]>([]);
 
     function optionSelected(option : string) {
+        setUmaSelected(option);
         console.log(`option selected: ${option}`);
     };
+
+    useEffect(() => {
+        const selectedUma = umaStats.find((uma) => uma.name.toLowerCase() === umaSelected.toLowerCase());
+        
+        if (selectedUma) {
+            statTypes.forEach((stat, i) => {
+                setValue(`uma-bonus-${stat.type}`, selectedUma.statMods[i].toFixed(2));
+            });
+        }
+    }, [umaSelected])
 
     function statCardClicked(e: MouseEvent<HTMLDivElement>, statType: number) {
         e.preventDefault();
@@ -77,6 +92,15 @@ const UmaProject: FC = () => {
         setSelectedCards(updatedCards);
     };
 
+    function handleSubmitData() {
+        statTypes.forEach((stat) => {
+            console.log(`Target ${stat.type} Value:`, getValues(`uma-target-${stat.type}`));
+        });
+        setUmaScores(processCards(filteredCards, weights, selectedCards));
+    }
+
+    console.log(umaScores)
+
     return (
         <div className="uma-project-container">
             <div className="uma-project-page">
@@ -87,10 +111,10 @@ const UmaProject: FC = () => {
                     This will provide suggested cards based on your requested stat requirements.
                 </div>
                 <FormProvider { ...methods }>
-                    <form className="uma-project-form">
+                    <form className="uma-project-form" onSubmit={(e) => e.preventDefault()}>
                         <div>
                             <div className="card-type">
-                                {statTypes.map(statType => 
+                                {cardTypes.map(statType => 
                                     {
                                         return (
                                             <div 
@@ -119,14 +143,22 @@ const UmaProject: FC = () => {
                                     </div>
                                 </div>
                                     <div className="uma-bonuses">
-                                        {statTypes.map(statType => 
+                                        {statTypes.map((stat) => 
                                             {
                                                 return (
-                                                    <div key={`uma-bonus-${statType.type}`}>
+                                                    <div key={`uma-bonus-${stat.type}`}>
                                                         <label>
-                                                            {statType.type}
+                                                            {stat.type}
                                                         </label>
-                                                        <input type="number" defaultValue="1.06" min="1.00" max="1.30" step=".01" className={`uma-bonus-${statType.type}`} />
+                                                        <input 
+                                                            type="number" 
+                                                            defaultValue="1.06" 
+                                                            min="1.00" 
+                                                            max="1.30" 
+                                                            step=".01" 
+                                                            className={`uma-bonus-${stat.type}`} 
+                                                            {...register(`uma-bonus-${stat.type}`)}
+                                                        />
                                                     </div>)
                                             }
                                         )}
@@ -145,7 +177,14 @@ const UmaProject: FC = () => {
                                                     <label>
                                                         {statType.type}
                                                     </label>
-                                                    <input type="number" defaultValue="600" min="0" max="1200" className={`uma-target-${statType.type}`} />
+                                                    <input 
+                                                        type="number" 
+                                                        defaultValue="600" 
+                                                        min="0" 
+                                                        max="1200" 
+                                                        className={`uma-target-${statType.type}`} 
+                                                        {...register(`uma-target-${statType.type}`)}
+                                                    />
                                                 </div>
                                             )
                                         }
@@ -304,7 +343,7 @@ const UmaProject: FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" value="submit"> 
+                        <button type="submit" value="submit" onClick={handleSubmitData}> 
                             Submit 
                         </button>
                     </form>
@@ -324,6 +363,7 @@ const UmaProject: FC = () => {
                                         statType={card.type}
                                         alt={`${card.char_name}`}
                                         cardClicked={() => supportCardRemove(card)}
+                                        cardId={card.id}
                                         key={`${card.id}-${card.limit_break}`}
                                     />)
                                 })
@@ -344,6 +384,8 @@ const UmaProject: FC = () => {
                                         statType={card.type}
                                         alt={`${card.char_name}`}
                                         cardClicked={() => supportCardAdd(card)}
+                                        cardId={card.id}
+                                        cardScores={umaScores}
                                         key={`${card.id}-${card.limit_break}`}
                                     />)
                                 })

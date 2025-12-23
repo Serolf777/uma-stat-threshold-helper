@@ -178,8 +178,16 @@
         cursor: pointer;
     }
 
-    .limit-break, .stat-type {
+    .limit-break, .stat-type, .temp-score {
         position: absolute;
+    }
+
+    .temp-score {
+        font-weight: bold;
+        color: lightgreen;
+        font-size: 16px;
+        left: 36px;
+        text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black;
     }
 
     .limit-break {

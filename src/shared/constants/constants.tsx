@@ -6,25 +6,32 @@ export const staticUmaList = [
     "Super Creek",
     "El Condor Pasa",
     "Gold Ship"
-]
-
-export const defaultUserSettings = {
-    NumberOfResults: "5",
-    DefaultGenre: "All",
-    Username: ""
-};
-
-export const defaultChatData = {
-    defaultMessage: "How can I assist you today?"
-}
-
-export const defaultChatMsgs = [
-    <div className="chatbot-response">
-        {defaultChatData.defaultMessage}
-    </div>
 ];
 
-export const Stats = {
+export const umaStats = [
+    { 
+        name: "Oguri Cap",
+        statMods: [1.20, 1.00, 1.10, 1.00, 1.00]
+    },
+    { 
+        name: "Tamamo Cross",
+        statMods: [1.00, 1.20, 1.10, 1.00, 1.00]
+    },
+    { 
+        name: "Super Creek",
+        statMods: [1.00, 1.10, 1.00, 1.00, 1.20]
+    },
+    { 
+        name: "El Condor Pasa",
+        statMods: [1.20, 1.00, 1.00, 1.00, 1.10]
+    },
+    { 
+        name: "Gold Ship",
+        statMods: [1.00, 1.20, 1.10, 1.00, 1.00]
+    }
+];
+
+export const Cards = {
     Spd: "Speed",
     Stam: "Stamina",
     Pow: "Power",
@@ -43,35 +50,58 @@ export const NumberToStat = {
     6: "Pal"
 };
 
-export const statTypes = [
+export const cardTypes = [
     { 
-        type: Stats.Spd,
+        type: Cards.Spd,
         img: Spd,
         typeVal: 0
     },
     { 
-        type: Stats.Stam,
+        type: Cards.Stam,
         img: Stam,
         typeVal: 1
     },
     { 
-        type: Stats.Pow,
+        type: Cards.Pow,
         img: Pow,
         typeVal: 2
     },
     { 
-        type: Stats.Guts,
+        type: Cards.Guts,
         img: Guts,
         typeVal: 3
     },
     { 
-        type: Stats.Wit,
+        type: Cards.Wit,
         img: Wit,
         typeVal: 4
     },
-    {
-        type: Stats.Pal,
+    { 
+        type: Cards.Pal,
         img: Pal,
         typeVal: 6
+    },
+];
+
+export const statTypes = [
+    { 
+        type: Cards.Spd,
+        typeVal: 0
+    },
+    { 
+        type: Cards.Stam,
+        typeVal: 1
+    },
+    { 
+        type: Cards.Pow,
+        typeVal: 2
+    },
+    { 
+        type: Cards.Guts,
+        typeVal: 3
+    },
+    { 
+        type: Cards.Wit,
+        typeVal: 4
     }
 ];
