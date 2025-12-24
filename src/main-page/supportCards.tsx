@@ -1,18 +1,17 @@
 import { FC } from 'react';
 import { NumberToStat } from '../shared/constants/constants.tsx';
-import { SupportCardScore } from './constants/constants.tsx';
 
 export interface SupportCardsProps {
-    imgUrl: string;
     limitBreak: number;
     statType: number;
     alt: string;
     cardClicked: () => void;
     cardId: number;
-    cardScores?: SupportCardScore[];
+    cardScore?: number;
+    sameCharInDeck?: boolean;
 };
 
-const SupportCards: FC<SupportCardsProps> = ({ imgUrl, limitBreak, statType, alt, cardClicked, cardId, cardScores }) => {
+const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardClicked, cardId, cardScore, sameCharInDeck }) => {
     let limitBreakString = "";
     let nonLimitBreakString = "";
 
@@ -26,19 +25,20 @@ const SupportCards: FC<SupportCardsProps> = ({ imgUrl, limitBreak, statType, alt
 
     let stat = (NumberToStat as Record<number, string>)[statType];
 
-    let currentScore: SupportCardScore | undefined;
-    if (cardScores) {
-        currentScore = cardScores.find((umaCard) => umaCard.id === cardId);
-    };
-
     return (
-        <div className="support-card" onClick={cardClicked}>
-            {currentScore &&
+        <div className={`support-card`} onClick={!sameCharInDeck ? cardClicked : () => {}}>
+            {(cardScore && cardScore !== 0) ?
                 <div className="temp-score">
-                    {currentScore.score.toFixed(0)}
+                    {cardScore.toFixed(0)}
                 </div>
+                : <></>
             }
-            <img src={`/cardImages/support_card_s_${cardId}.png`} alt={alt} height={100} />
+            <img 
+                src={`/cardImages/support_card_s_${cardId}.png`} 
+                className={`${sameCharInDeck ? "in-deck" : "" }`}
+                alt={alt} 
+                height={100} 
+            />
             <div className="limit-break">
                 <div className="lb">
                     {limitBreakString}
@@ -47,12 +47,14 @@ const SupportCards: FC<SupportCardsProps> = ({ imgUrl, limitBreak, statType, alt
                     {nonLimitBreakString}
                 </div>
             </div>
-            <img 
-                src={`/statImages/${stat}.png`} 
-                className={`stat-type ${stat}`} 
-                alt={`stat-type ${stat}`} 
-                height={25} 
-            />
+            {!sameCharInDeck &&
+                <img 
+                    src={`/statImages/${stat}.png`} 
+                    className={`stat-type ${stat}`} 
+                    alt={`stat-type ${stat}`} 
+                    height={25} 
+                />
+            }
         </div>
     )
 };

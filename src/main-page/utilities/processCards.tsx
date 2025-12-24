@@ -1,6 +1,6 @@
 import { SupportCard } from "../cards/cards-interfaces";
-import { WeightsInterface } from "../constants/constants";
 import cardEvents from '../constants/cardEvents.tsx'
+import { CombinedWeights } from "../constants/scenarios.tsx";
 
 const events: Record<number, number[]> = cardEvents as unknown as Record<number, number[]>;
 
@@ -67,7 +67,7 @@ const raceRewards = [
     [13.5,13.5,13.5,13.5,13.5,50]
 ]
 
-export default function processCards(cards: SupportCard[], weights: WeightsInterface, selectedCards: SupportCard[]) {
+export default function processCards(cards: SupportCard[], weights: CombinedWeights, selectedCards: SupportCard[]) {
 
     let processedCards: ProcessedCard[] = [];
     let finalCards = [];
@@ -358,7 +358,7 @@ function GetCombinations(cards: ProcessedCard[], minLength = 1) {
 
 const currentScenarioMax: number = 1200;
 
-function GainsToScore(gains: number[], weights: WeightsInterface) {
+function GainsToScore(gains: number[], weights: CombinedWeights) {
     let score = 0;
     for (let stat = 0; stat < 6; stat ++) {
         score += Math.min(gains[stat], currentScenarioMax) * weights.stats[stat];
@@ -368,7 +368,7 @@ function GainsToScore(gains: number[], weights: WeightsInterface) {
 
 function CalculateCrossTrainingGain(
     gains: number[], 
-    weights: WeightsInterface, 
+    weights: CombinedWeights, 
     card: SupportCard, 
     otherCards: ProcessedCard[], 
     trainingType: number, 
@@ -456,7 +456,7 @@ function CalculateCrossTrainingGain(
 
 function CalculateTrainingGain(
     gains: number[], 
-    weights: WeightsInterface, 
+    weights: CombinedWeights, 
     card: SupportCard, 
     otherCards: ProcessedCard[], 
     trainingType: number, 

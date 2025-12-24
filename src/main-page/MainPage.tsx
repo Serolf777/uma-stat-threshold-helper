@@ -6,9 +6,10 @@ import { staticUmaList, cardTypes, statTypes, umaStats } from '../shared/constan
 import SupportCards from './supportCards.tsx';
 import cards from './cards/cards.tsx';
 import { RarityFilter } from './cards/cards-interfaces.tsx';
-import { defaultLbFilter, SupportCardScore, weights } from './constants/constants.tsx';
+import { defaultLbFilter, SupportCardScore } from './constants/constants.tsx';
 import { SupportCard } from './cards/cards-interfaces.tsx';
 import processCards from './utilities/processCards.tsx';
+import { CardStats, defaultAoharuState, ScenarioStates } from './constants/scenarios.tsx';
 
 const UmaProject: FC = () => {
     const methods = useForm();
@@ -18,6 +19,7 @@ const UmaProject: FC = () => {
     const [selectedCards, setSelectedCards] = useState<SupportCard[]>([]);
     const [umaSelected, setUmaSelected] = useState<string>("Oguri Cap");
     const [umaScores, setUmaScores] = useState<SupportCardScore[]>([]);
+    const updatedCards = cards.map(card => ({...card,  score: 0, sameCharInDeck: false }));
 
     function optionSelected(option : string) {
         setUmaSelected(option);
@@ -64,8 +66,18 @@ const UmaProject: FC = () => {
         }))
     };
 
-    const filteredCards = useMemo(() => cards.filter((card) => {
+    const filteredCards = useMemo(() => updatedCards.filter((card) => {
         const currentlyInDeck = selectedCards.some(currentCard => currentCard.id === card.id);
+        const sameCharInDeck = selectedCards.some(currentCard => currentCard.char_name === card.char_name);
+
+        if (umaScores) {
+            const cardScore = umaScores.find((umaCard) => umaCard.id === card.id);
+            card.score = cardScore?.score ? cardScore?.score : 0;
+        }
+
+        if (sameCharInDeck) {
+            card.sameCharInDeck = true;
+        }
 
         if (card.rarity == 1 && raritiesFilter[0].lb.includes(card.limit_break) && card.type == statSelected && !currentlyInDeck) {
             return true;
@@ -77,7 +89,9 @@ const UmaProject: FC = () => {
             return true;
         }
         return false;
-    }), [raritiesFilter, statSelected, selectedCards]);
+    }), [raritiesFilter, statSelected, selectedCards, umaScores]);
+
+    filteredCards.sort((a, b) => b.score - a.score);
 
     function supportCardAdd(card: SupportCard) {
         if (selectedCards.length < 6) {
@@ -96,10 +110,18 @@ const UmaProject: FC = () => {
         statTypes.forEach((stat) => {
             console.log(`Target ${stat.type} Value:`, getValues(`uma-target-${stat.type}`));
         });
-        setUmaScores(processCards(filteredCards, weights, selectedCards));
-    }
 
-    console.log(umaScores)
+        const currentStateKey = defaultAoharuState.currentState as keyof ScenarioStates;
+
+        const val: CardStats = defaultAoharuState[currentStateKey as keyof ScenarioStates] as CardStats;
+
+        const combinedWeights = {
+            ...val,
+            ...defaultAoharuState.general
+        };
+
+        setUmaScores(processCards(filteredCards, combinedWeights, selectedCards));
+    }
 
     return (
         <div className="uma-project-container">
@@ -357,15 +379,14 @@ const UmaProject: FC = () => {
                             {selectedCards.map((card) =>
                                 {
                                     return (
-                                    <SupportCards 
-                                        imgUrl={`/cardImages/support_card_s_${card.id}.png`}
-                                        limitBreak={card.limit_break}
-                                        statType={card.type}
-                                        alt={`${card.char_name}`}
-                                        cardClicked={() => supportCardRemove(card)}
-                                        cardId={card.id}
-                                        key={`${card.id}-${card.limit_break}`}
-                                    />)
+                                        <SupportCards 
+                                            limitBreak={card.limit_break}
+                                            statType={card.type}
+                                            alt={`${card.char_name}`}
+                                            cardClicked={() => supportCardRemove(card)}
+                                            cardId={card.id}
+                                            key={`${card.id}-${card.limit_break}`}
+                                        />)
                                 })
                             }
                         </div>
@@ -378,16 +399,16 @@ const UmaProject: FC = () => {
                             {filteredCards.map((card) =>
                                 {
                                     return (
-                                    <SupportCards 
-                                        imgUrl={`/cardImages/support_card_s_${card.id}.png`}
-                                        limitBreak={card.limit_break}
-                                        statType={card.type}
-                                        alt={`${card.char_name}`}
-                                        cardClicked={() => supportCardAdd(card)}
-                                        cardId={card.id}
-                                        cardScores={umaScores}
-                                        key={`${card.id}-${card.limit_break}`}
-                                    />)
+                                        <SupportCards 
+                                            limitBreak={card.limit_break}
+                                            statType={card.type}
+                                            alt={`${card.char_name}`}
+                                            cardClicked={() => supportCardAdd(card)}
+                                            cardId={card.id}
+                                            cardScore={card.score}
+                                            sameCharInDeck={card.sameCharInDeck}
+                                            key={`${card.id}-${card.limit_break}`}
+                                        />)
                                 })
                             }
                         </div>
