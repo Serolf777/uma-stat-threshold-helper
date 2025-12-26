@@ -68,7 +68,6 @@ const raceRewards = [
 ]
 
 export default function processCards(cards: SupportCard[], weights: CombinedWeights, selectedCards: SupportCard[]) {
-
     let processedCards: ProcessedCard[] = [];
     let finalCards = [];
 
@@ -93,13 +92,12 @@ export default function processCards(cards: SupportCard[], weights: CombinedWeig
         cardsPerType[selectedCard.cardType].push(selectedCard);
         if (selectedCard.cardType == 6) {
             baseBondNeeded += 55 - selectedCard.sb
-        } 
-        else {
-            if (events[selectedCard.id]) {
-                baseBondNeeded -= events[selectedCard.id][7];
-            }
+        } else {
+            baseBondNeeded += 75 - selectedCard.sb
         }
-        processedCards.push(selectedCard);
+        if (events[selectedCard.id]) {
+            baseBondNeeded -= events[selectedCard.id][7];
+        }
     }
 
     let preferredRainbowChances = [0,0,0,0,0];
@@ -356,12 +354,10 @@ function GetCombinations(cards: ProcessedCard[], minLength = 1) {
     return combinations;
 };
 
-const currentScenarioMax: number = 1200;
-
 function GainsToScore(gains: number[], weights: CombinedWeights) {
     let score = 0;
     for (let stat = 0; stat < 6; stat ++) {
-        score += Math.min(gains[stat], currentScenarioMax) * weights.stats[stat];
+        score += Math.min(gains[stat], weights.cap) * weights.stats[stat];
     }
     return score;
 };

@@ -9,7 +9,7 @@ import { RarityFilter } from './cards/cards-interfaces.tsx';
 import { defaultLbFilter, SupportCardScore } from './constants/constants.tsx';
 import { SupportCard } from './cards/cards-interfaces.tsx';
 import processCards from './utilities/processCards.tsx';
-import { CardStats, defaultAoharuState, ScenarioStates } from './constants/scenarios.tsx';
+import { CardStats, defaultAoharuState, defaultWeights, ScenarioStates } from './constants/scenarios.tsx';
 
 const UmaProject: FC = () => {
     const methods = useForm();
@@ -19,7 +19,7 @@ const UmaProject: FC = () => {
     const [selectedCards, setSelectedCards] = useState<SupportCard[]>([]);
     const [umaSelected, setUmaSelected] = useState<string>("Oguri Cap");
     const [umaScores, setUmaScores] = useState<SupportCardScore[]>([]);
-    const updatedCards = cards.map(card => ({...card,  score: 0, sameCharInDeck: false }));
+    const updatedCards = cards.map(card => ({...card,  score: 0 }));
 
     function optionSelected(option : string) {
         setUmaSelected(option);
@@ -68,15 +68,10 @@ const UmaProject: FC = () => {
 
     const filteredCards = useMemo(() => updatedCards.filter((card) => {
         const currentlyInDeck = selectedCards.some(currentCard => currentCard.id === card.id);
-        const sameCharInDeck = selectedCards.some(currentCard => currentCard.char_name === card.char_name);
 
         if (umaScores) {
             const cardScore = umaScores.find((umaCard) => umaCard.id === card.id);
             card.score = cardScore?.score ? cardScore?.score : 0;
-        }
-
-        if (sameCharInDeck) {
-            card.sameCharInDeck = true;
         }
 
         if (card.rarity == 1 && raritiesFilter[0].lb.includes(card.limit_break) && card.type == statSelected && !currentlyInDeck) {
@@ -113,10 +108,10 @@ const UmaProject: FC = () => {
 
         const currentStateKey = defaultAoharuState.currentState as keyof ScenarioStates;
 
-        const val: CardStats = defaultAoharuState[currentStateKey as keyof ScenarioStates] as CardStats;
+        const scenario: CardStats = defaultAoharuState[currentStateKey as keyof ScenarioStates] as CardStats;
 
         const combinedWeights = {
-            ...val,
+            ...scenario,
             ...defaultAoharuState.general
         };
 
@@ -385,6 +380,7 @@ const UmaProject: FC = () => {
                                             alt={`${card.char_name}`}
                                             cardClicked={() => supportCardRemove(card)}
                                             cardId={card.id}
+                                            charName={card.char_name}
                                             key={`${card.id}-${card.limit_break}`}
                                         />)
                                 })
@@ -406,7 +402,8 @@ const UmaProject: FC = () => {
                                             cardClicked={() => supportCardAdd(card)}
                                             cardId={card.id}
                                             cardScore={card.score}
-                                            sameCharInDeck={card.sameCharInDeck}
+                                            charName={card.char_name}
+                                            selectedCards={selectedCards}
                                             key={`${card.id}-${card.limit_break}`}
                                         />)
                                 })

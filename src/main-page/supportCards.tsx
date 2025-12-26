@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { NumberToStat } from '../shared/constants/constants.tsx';
+import { SupportCard } from './cards/cards-interfaces.tsx';
 
 export interface SupportCardsProps {
     limitBreak: number;
@@ -8,10 +9,11 @@ export interface SupportCardsProps {
     cardClicked: () => void;
     cardId: number;
     cardScore?: number;
-    sameCharInDeck?: boolean;
+    charName: string;
+    selectedCards?: SupportCard[];
 };
 
-const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardClicked, cardId, cardScore, sameCharInDeck }) => {
+const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardClicked, cardId, cardScore, charName, selectedCards }) => {
     let limitBreakString = "";
     let nonLimitBreakString = "";
 
@@ -23,7 +25,12 @@ const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardCl
         nonLimitBreakString = nonLimitBreakString + "◆";
     }
 
-    let stat = (NumberToStat as Record<number, string>)[statType];
+    const stat = (NumberToStat as Record<number, string>)[statType];
+
+    let sameCharInDeck = false;
+    if (selectedCards) {
+        sameCharInDeck = selectedCards.some((card) => card.char_name === charName)
+    }
 
     return (
         <div className={`support-card`} onClick={!sameCharInDeck ? cardClicked : () => {}}>
