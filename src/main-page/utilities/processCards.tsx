@@ -98,6 +98,7 @@ export default function processCards(cards: SupportCard[], weights: CombinedWeig
         if (events[selectedCard.id]) {
             baseBondNeeded -= events[selectedCard.id][7];
         }
+        processedCards.push(selectedCard);
     }
 
     let preferredRainbowChances = [0,0,0,0,0];

@@ -70,7 +70,7 @@ const UmaProject: FC = () => {
         const currentlyInDeck = selectedCards.some(currentCard => currentCard.id === card.id);
 
         if (umaScores) {
-            const cardScore = umaScores.find((umaCard) => umaCard.id === card.id);
+            const cardScore = umaScores.find((umaCard) => umaCard.id === card.id && umaCard.lb === card.limit_break);
             card.score = cardScore?.score ? cardScore?.score : 0;
         }
 
