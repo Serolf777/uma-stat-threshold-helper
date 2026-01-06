@@ -5,26 +5,48 @@ import Dropdown from '../shared/dropdown.tsx';
 import { staticUmaList, cardTypes, statTypes, umaStats } from '../shared/constants/constants.tsx';
 import SupportCards from './supportCards.tsx';
 import cards from './cards/cards.tsx';
-import { RarityFilter } from './cards/cards-interfaces.tsx';
-import { defaultLbFilter, SupportCardScore } from './constants/constants.tsx';
+import { RarityFilter, SupportCardWithScore } from './cards/cards-interfaces.tsx';
+import { defaultCardsSelected, defaultLbFilter, SupportCardScore } from './constants/constants.tsx';
 import { SupportCard } from './cards/cards-interfaces.tsx';
 import processCards from './utilities/processCards.tsx';
-import { CardStats, defaultAoharuState, defaultWeights, ScenarioStates } from './constants/scenarios.tsx';
+import { CardStats, defaultAoharuState, ScenarioStates } from './constants/scenarios.tsx';
+import { NumberToStatFull } from '../shared/constants/constants.tsx';
 
 const UmaProject: FC = () => {
     const methods = useForm();
     const { getValues, setValue, register } = methods;
     const [raritiesFilter, setRaritiesFilter] = useState<RarityFilter[]>(defaultLbFilter);
     const [statSelected, setStatSelected] = useState<number | null>(0);
-    const [selectedCards, setSelectedCards] = useState<SupportCard[]>([]);
+    const [selectedCards, setSelectedCards] = useState<SupportCard[]>(defaultCardsSelected);
     const [umaSelected, setUmaSelected] = useState<string>("Oguri Cap");
     const [umaScores, setUmaScores] = useState<SupportCardScore[]>([]);
-    const updatedCards = cards.map(card => ({...card,  score: 0 }));
+    const [currentScenario, setCurrentScenario] = useState(defaultAoharuState);
+    const updatedCards: SupportCardWithScore[] = cards.map(card => ({...card,  score: 0 }));
 
     function optionSelected(option : string) {
         setUmaSelected(option);
         console.log(`option selected: ${option}`);
     };
+
+    useEffect(() => {
+        const statKey = statSelected === null ? undefined : (NumberToStatFull as Record<number, string>)[statSelected];
+
+        if (statKey && currentScenario.currentState !== statKey) {
+            if (statKey.toLowerCase() === "wit") {
+                setCurrentScenario({ ...currentScenario,
+                    currentState: "wisdom"
+                });
+            } else if (statKey.toLowerCase() === "pal") {
+                setCurrentScenario({ ...currentScenario,
+                    currentState: "friend"
+                });
+            } else {
+                setCurrentScenario({ ...currentScenario,
+                    currentState: statKey.toLowerCase()
+                });
+            }
+        }
+    }, [currentScenario.currentState, statSelected]);
 
     useEffect(() => {
         const selectedUma = umaStats.find((uma) => uma.name.toLowerCase() === umaSelected.toLowerCase());
@@ -71,7 +93,7 @@ const UmaProject: FC = () => {
 
         if (umaScores) {
             const cardScore = umaScores.find((umaCard) => umaCard.id === card.id && umaCard.lb === card.limit_break);
-            card.score = cardScore?.score ? cardScore?.score : 0;
+            card.score = cardScore?.score ?? 0;
         }
 
         if (card.rarity == 1 && raritiesFilter[0].lb.includes(card.limit_break) && card.type == statSelected && !currentlyInDeck) {
@@ -106,17 +128,32 @@ const UmaProject: FC = () => {
             console.log(`Target ${stat.type} Value:`, getValues(`uma-target-${stat.type}`));
         });
 
-        const currentStateKey = defaultAoharuState.currentState as keyof ScenarioStates;
+        const currentStateKey = currentScenario.currentState as keyof ScenarioStates;
 
-        const scenario: CardStats = defaultAoharuState[currentStateKey as keyof ScenarioStates] as CardStats;
+        console.log(currentStateKey)
+
+        const scenario: CardStats = currentScenario[currentStateKey as keyof ScenarioStates] as CardStats;
 
         const combinedWeights = {
             ...scenario,
-            ...defaultAoharuState.general
+            ...currentScenario.general
         };
 
+        console.log(combinedWeights)
+
         setUmaScores(processCards(filteredCards, combinedWeights, selectedCards));
-    }
+    };
+
+    function umaBonusChanged(val: string, index: number) {
+        if (val) {
+            const updatedBonus = currentScenario.general;
+            updatedBonus.umaBonus[index] = parseFloat(val);
+
+            setCurrentScenario({ ...currentScenario,
+                general: updatedBonus
+            });
+        }
+    };
 
     return (
         <div className="uma-project-container">
@@ -160,7 +197,7 @@ const UmaProject: FC = () => {
                                     </div>
                                 </div>
                                     <div className="uma-bonuses">
-                                        {statTypes.map((stat) => 
+                                        {statTypes.map((stat, i) => 
                                             {
                                                 return (
                                                     <div key={`uma-bonus-${stat.type}`}>
@@ -175,6 +212,7 @@ const UmaProject: FC = () => {
                                                             step=".01" 
                                                             className={`uma-bonus-${stat.type}`} 
                                                             {...register(`uma-bonus-${stat.type}`)}
+                                                            onChange={(e) => umaBonusChanged(e.target.value, i)}
                                                         />
                                                     </div>)
                                             }
@@ -219,145 +257,55 @@ const UmaProject: FC = () => {
                                 <div className="ssr-filter-header">
                                     SSR
                                 </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(3, 4)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(3, 3)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(3, 2)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(3, 1)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(3, 0)} />
-                                </div>
+                                {Array.from({ length: 5 }, (_, i) => 4 - i).map((lb, i) => {
+                                    return (
+                                        <div className="checkbox-container" key={`ssr-lb-${lb}`}>
+                                            <div className="lb">
+                                                {Array.from({ length: lb }, (_, i) => `◆`).join('')}
+                                            </div>
+                                            <div className="non-lb">
+                                                {Array.from({ length: 4 - lb }, (_, i) => `◆`).join('')}
+                                            </div>
+                                            <input type="checkbox" defaultChecked={i === 0 ? true : false} onClick={() => rarityCheckBoxHandler(3, lb)} />
+                                        </div>
+                                    )
+                                })}
                             </div>
                             <div className="sr-filter-container">
                                 <div className="sr-filter-header">
                                     SR
                                 </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(2, 4)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(2, 3)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(2, 2)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(2, 1)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(2, 0)} />
-                                </div>
+                                {Array.from({ length: 5 }, (_, i) => 4 - i).map((lb, i) => {
+                                    return (
+                                        <div className="checkbox-container" key={`ssr-lb-${lb}`}>
+                                            <div className="lb">
+                                                {Array.from({ length: lb }, (_, i) => `◆`).join('')}
+                                            </div>
+                                            <div className="non-lb">
+                                                {Array.from({ length: 4 - lb }, (_, i) => `◆`).join('')}
+                                            </div>
+                                            <input type="checkbox" defaultChecked={i === 0 ? true : false} onClick={() => rarityCheckBoxHandler(2, lb)} />
+                                        </div>
+                                    )
+                                })}
                             </div>
                             <div className="r-filter-container">
                                 <div className="r-filter-header">
                                     R
                                 </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(1, 4)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(1, 3)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(1, 2)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                        ◆
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(1, 1)} />
-                                </div>
-                                <div className="checkbox-container">
-                                    <div className="lb">
-                                    </div>
-                                    <div className="non-lb">
-                                        ◆◆◆◆
-                                    </div>
-                                    <input type="checkbox" defaultChecked={true} onClick={() => rarityCheckBoxHandler(1, 0)} />
-                                </div>
+                                {Array.from({ length: 5 }, (_, i) => 4 - i).map((lb, i) => {
+                                    return (
+                                        <div className="checkbox-container" key={`ssr-lb-${lb}`}>
+                                            <div className="lb">
+                                                {Array.from({ length: lb }, (_, i) => `◆`).join('')}
+                                            </div>
+                                            <div className="non-lb">
+                                                {Array.from({ length: 4 - lb }, (_, i) => `◆`).join('')}
+                                            </div>
+                                            <input type="checkbox" defaultChecked={i === 0 ? true : false} onClick={() => rarityCheckBoxHandler(1, lb)} />
+                                        </div>
+                                    )
+                                })}
                             </div>
                         </div>
                         <button type="submit" value="submit" onClick={handleSubmitData}> 

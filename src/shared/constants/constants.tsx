@@ -50,6 +50,16 @@ export const NumberToStat = {
     6: "Pal"
 };
 
+export const NumberToStatFull = {
+    0: "Speed",
+    1: "Stamina",
+    2: "Power",
+    3: "Guts",
+    4: "Wit",
+    5: "",
+    6: "Pal"
+};
+
 export const cardTypes = [
     { 
         type: Cards.Spd,
