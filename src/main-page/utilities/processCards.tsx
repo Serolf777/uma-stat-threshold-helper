@@ -128,11 +128,10 @@ export default function processCards(cards: SupportCard[], weights: CombinedWeig
         let card: ProcessedCard = { ...cards[i],
             rainbowSpecialty: 0,
             offSpecialty: 0,
-            cardType: 0,
-            index: 0,
+            cardType: cards[i].type,
+            index: 6,
          };
         let cardType = card.type;
-        card.index = 6;
         let bondNeeded = baseBondNeeded;
         if (cardType == 6) {
             bondNeeded += 55 - card.sb
@@ -497,7 +496,6 @@ function CalculateTrainingGain(
                 * (rainbow ? weights.multi : 1);
         }
     }
-    
     if (otherCards.length == 0) return trainingGains;
 
     const combinations = GetCombinations(otherCards);
@@ -572,7 +570,7 @@ function CalculateCombinationChance(combination: ProcessedCard[], cards: Process
     }, 1);
     
     if (cards) {
-        const otherCards = cards.filter((c) => combination.findIndex((d) => c.index == d.index) === -1);
+        const otherCards = cards.filter((c) => combination.findIndex((d) => c.index === d.index) === -1);
         chance = otherCards.reduce((current, card) => {
             if (card.type === trainingType) {
                 return current * (1 - card.rainbowSpecialty);

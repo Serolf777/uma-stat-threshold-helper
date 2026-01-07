@@ -182,7 +182,7 @@ export const defaultMANTState = {
 
 export const defaultAoharuState = {
     version: 18,
-    currentState: "wisdom",
+    currentState: "speed",
     show: false,
     general: {
         bondPerDay: 10,

@@ -52,8 +52,14 @@ const UmaProject: FC = () => {
         const selectedUma = umaStats.find((uma) => uma.name.toLowerCase() === umaSelected.toLowerCase());
         
         if (selectedUma) {
+            const updatedBonus = currentScenario.general;
             statTypes.forEach((stat, i) => {
+                updatedBonus.umaBonus[i] = parseFloat(selectedUma.statMods[i].toFixed(2));
                 setValue(`uma-bonus-${stat.type}`, selectedUma.statMods[i].toFixed(2));
+            });
+
+            setCurrentScenario({ ...currentScenario,
+                general: updatedBonus
             });
         }
     }, [umaSelected])
@@ -124,13 +130,7 @@ const UmaProject: FC = () => {
     };
 
     function handleSubmitData() {
-        statTypes.forEach((stat) => {
-            console.log(`Target ${stat.type} Value:`, getValues(`uma-target-${stat.type}`));
-        });
-
         const currentStateKey = currentScenario.currentState as keyof ScenarioStates;
-
-        console.log(currentStateKey)
 
         const scenario: CardStats = currentScenario[currentStateKey as keyof ScenarioStates] as CardStats;
 
@@ -138,8 +138,6 @@ const UmaProject: FC = () => {
             ...scenario,
             ...currentScenario.general
         };
-
-        console.log(combinedWeights)
 
         setUmaScores(processCards(filteredCards, combinedWeights, selectedCards));
     };
