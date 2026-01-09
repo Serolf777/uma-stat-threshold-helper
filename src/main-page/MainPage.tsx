@@ -8,7 +8,7 @@ import cards from './cards/cards.tsx';
 import { RarityFilter, SupportCardWithScore } from './cards/cards-interfaces.tsx';
 import { defaultCardsSelected, defaultLbFilter, SupportCardScore } from './constants/constants.tsx';
 import { SupportCard } from './cards/cards-interfaces.tsx';
-import processCards from './utilities/processCards.tsx';
+import processCards from './utilities/processCards.jsx';
 import { CardStats, defaultAoharuState, ScenarioStates } from './constants/scenarios.tsx';
 import { NumberToStatFull } from '../shared/constants/constants.tsx';
 
@@ -96,7 +96,6 @@ const UmaProject: FC = () => {
 
     const filteredCards = useMemo(() => updatedCards.filter((card) => {
         const currentlyInDeck = selectedCards.some(currentCard => currentCard.id === card.id);
-
         if (umaScores) {
             const cardScore = umaScores.find((umaCard) => umaCard.id === card.id && umaCard.lb === card.limit_break);
             card.score = cardScore?.score ?? 0;
@@ -138,6 +137,8 @@ const UmaProject: FC = () => {
             ...scenario,
             ...currentScenario.general
         };
+
+        console.log(filteredCards, combinedWeights, selectedCards)
 
         setUmaScores(processCards(filteredCards, combinedWeights, selectedCards));
     };
