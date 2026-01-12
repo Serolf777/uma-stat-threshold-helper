@@ -35,7 +35,7 @@ const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardCl
     return (
         <div className={`support-card`} onClick={!sameCharInDeck ? cardClicked : () => {}}>
             {(cardScore && cardScore !== 0) ?
-                <div className="temp-score">
+                <div className="card-score">
                     {cardScore.toFixed(0)}
                 </div>
                 : <></>
@@ -54,14 +54,12 @@ const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardCl
                     {nonLimitBreakString}
                 </div>
             </div>
-            {!sameCharInDeck &&
-                <img 
-                    src={`/statImages/${stat}.png`} 
-                    className={`stat-type ${stat}`} 
-                    alt={`stat-type ${stat}`} 
-                    height={25} 
-                />
-            }
+            <img 
+                src={`/statImages/${stat}.png`} 
+                className={`stat-type ${stat}`} 
+                alt={`stat-type ${stat}`} 
+                height={25} 
+            />
         </div>
     )
 };

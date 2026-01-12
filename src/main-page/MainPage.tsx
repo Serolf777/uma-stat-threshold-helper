@@ -8,7 +8,7 @@ import cards from './cards/cards.tsx';
 import { RarityFilter, SupportCardWithScore } from './cards/cards-interfaces.tsx';
 import { defaultCardsSelected, defaultLbFilter, SupportCardScore } from './constants/constants.tsx';
 import { SupportCard } from './cards/cards-interfaces.tsx';
-import processCards from './utilities/processCards.jsx';
+import processCards, { CalculateDeckGains } from './utilities/processCards.jsx';
 import { CardStats, defaultAoharuState, ScenarioStates } from './constants/scenarios.tsx';
 import { NumberToStatFull } from '../shared/constants/constants.tsx';
 
@@ -20,6 +20,7 @@ const UmaProject: FC = () => {
     const [selectedCards, setSelectedCards] = useState<SupportCard[]>(defaultCardsSelected);
     const [umaSelected, setUmaSelected] = useState<string>("Oguri Cap");
     const [umaScores, setUmaScores] = useState<SupportCardScore[]>([]);
+    const [avgStatGains, setAvgStatGains] = useState([0,0,0,0,0,0,0]);
     const [currentScenario, setCurrentScenario] = useState(defaultAoharuState);
     const updatedCards: SupportCardWithScore[] = cards.map(card => ({...card,  score: 0 }));
 
@@ -115,6 +116,9 @@ const UmaProject: FC = () => {
 
     filteredCards.sort((a, b) => b.score - a.score);
 
+    const totalRaceBonus = useMemo(() => selectedCards.reduce((total, card) => total + card.race_bonus, 0), 
+    [selectedCards]);
+
     function supportCardAdd(card: SupportCard) {
         if (selectedCards.length < 6) {
             setSelectedCards([...selectedCards,
@@ -138,9 +142,8 @@ const UmaProject: FC = () => {
             ...currentScenario.general
         };
 
-        console.log(filteredCards, combinedWeights, selectedCards)
-
         setUmaScores(processCards(filteredCards, combinedWeights, selectedCards));
+        setAvgStatGains(CalculateDeckGains(combinedWeights, selectedCards));
     };
 
     function umaBonusChanged(val: string, index: number) {
@@ -332,6 +335,19 @@ const UmaProject: FC = () => {
                                         />)
                                 })
                             }
+                        </div>
+                        <div className="avg-stat-gains-container">
+                            <div className="avg-stat-gains-header">
+                                Average Stat Gains
+                            </div>
+                            <div className="avg-stat-gains">
+                                {statTypes.map((statType, i) => {
+                                    return <div className="avg-stat-gain">{statType.type}: {avgStatGains[i].toFixed(0)}</div>
+                                })}
+                            </div>
+                        </div>
+                        <div className="total-race-bonus">
+                            Total Race Bonuses : {totalRaceBonus}
                         </div>
                     </div>
                     <div className="selected-card-type-container">

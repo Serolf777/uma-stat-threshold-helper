@@ -154,6 +154,23 @@
                     align-items: center;
                     justify-content: center;
                 }
+
+                .avg-stat-gains-container {
+                    font-weight: bold;
+                    margin: 4px 0 4px 0;
+                    
+                    .avg-stat-gains {
+                        display: flex;
+
+                        .avg-stat-gain {
+                            margin: 0 4px 0 4px;
+                        }
+                    }
+                }
+
+                .total-race-bonus {
+                    font-weight: bold;
+                }
             }
         }
 
@@ -182,16 +199,17 @@
         filter: grayscale(100%);
     }
 
-    .limit-break, .stat-type, .temp-score {
+    .limit-break, .stat-type, .card-score {
         position: absolute;
     }
 
-    .temp-score {
+    .card-score {
         font-weight: bold;
         color: lightgreen;
         font-size: 16px;
         left: 32px;
         text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black;
+        z-index: 1;
     }
 
     .limit-break {

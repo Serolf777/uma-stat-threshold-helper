@@ -495,3 +495,252 @@ function CalculateCombinationChance(combination, cards, trainingType) {
 
     return chance;
 }
+
+export function CalculateDeckGains(weights, selectedCards) {
+    let deckStatGains = [0,0,0,0,0,0];
+
+    // Calculate some stuff here so we don't have to do it a million times later
+    let presentTypes = [false,false,false,false,false,false,false];
+    let cardsPerType = [[],[],[],[],[],[],[]];
+    let baseBondNeeded = 0;
+    for (let card = 0; card < selectedCards.length; card++) {
+        let selectedCard = selectedCards[card];
+        let cardSpecialty = (100 + selectedCard.specialty_rate + weights.bonusSpec) * selectedCard.unique_specialty * selectedCard.fs_specialty;
+        let cardSpecialtyPercent = (cardSpecialty) / (450 + cardSpecialty)
+        selectedCard.rainbowSpecialty = cardSpecialtyPercent;
+        selectedCard.offSpecialty = 100 / (450 + cardSpecialty);
+        selectedCard.cardType = selectedCard.type;
+        selectedCard.index = card;
+        presentTypes[selectedCard.cardType] = true;
+        cardsPerType[selectedCard.cardType].push(selectedCard);
+        if (selectedCard.cardType == 6) {
+            baseBondNeeded += 55 - selectedCard.sb
+        } else {
+            baseBondNeeded += 75 - selectedCard.sb
+        }
+        if (cardEvents[selectedCard.id]) {
+            baseBondNeeded -= cardEvents[selectedCard.id][7];
+        }
+    }
+    let preferredRainbowChances = [0,0,0,0,0];
+    for (let i = 0; i < 5; i++) {
+        if (i != weights.type) {
+            if(cardsPerType[i].length > 0) {
+                let minimum = 1;
+                if (weights.prioritize) {
+                    minimum = 2;
+                }
+                let combos = GetCombinations(cardsPerType[i], minimum);
+                if (combos.length > 0) {
+                    preferredRainbowChances[i] = combos.reduce((current, combo) => {
+                        return current += CalculateCombinationChance(combo, undefined, i);
+                    }, 0);
+                }
+            }
+        }
+    }
+    
+    let chanceOfPreferredRainbow = 1 - preferredRainbowChances.reduce((current, chance) => {
+        return current * (1 - chance);
+    }, 1);
+
+    for (let i = 0; i < selectedCards.length; i++) {
+        let info = {};
+        let card = JSON.parse(JSON.stringify(selectedCards[i]));
+        let cardType = card.type;
+        card.index = 6;
+        let bondNeeded = baseBondNeeded;
+        if (cardType == 6) {
+            bondNeeded += 55 - card.sb
+        } else {
+            bondNeeded += 75 - card.sb
+        }
+        let presentTypesWithCard = presentTypes.slice();
+        presentTypesWithCard[cardType] = true;
+
+        let typeCount = presentTypesWithCard.filter(Boolean).length;
+
+        // Add starting stats and stats from events
+        let score = card.sb;
+        let energyGain = 0;
+        let statGains = card.starting_stats.slice();
+        statGains.push(0);
+        
+        info.starting_stats = card.starting_stats.slice();
+        info.event_stats = [0,0,0,0,0,0,0];
+        
+        if (cardEvents[card.id]) {
+            info.event_stats = cardEvents[card.id].slice();
+            for (let stat = 0; stat < 6; stat++) {
+                statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up;
+                info.event_stats[stat] = cardEvents[card.id][stat] * card.effect_size_up;
+            }
+            energyGain += cardEvents[card.id][6] * card.energy_up;
+            bondNeeded -= cardEvents[card.id][7];
+            score += cardEvents[card.id][7];
+        } else {
+            // Dummy event values for cards we don't yet know the events for
+            if (card.rarity === 2) {
+                // 35 total
+                for (let stat = 0; stat < 5; stat++) {
+                    statGains[stat] += 7;
+                }
+                bondNeeded -= 5;
+            } else if (card.rarity === 3) {
+                // 45 total
+                for (let stat = 0; stat < 5; stat++) {
+                    statGains[stat] += 9;
+                }
+                bondNeeded -= 5;
+            }
+            score += 5;
+        }
+
+        if (card.type_stats > 0) {
+            statGains[card.type] += card.type_stats;
+            for (let sc = 0; sc < selectedCards.length; sc++) {
+                if(selectedCards[sc].type < 6) {
+                    statGains[selectedCards[sc].type] += card.type_stats;
+                } else {
+                    statGains[0] += card.type_stats / 5;
+                    statGains[1] += card.type_stats / 5;
+                    statGains[2] += card.type_stats / 5;
+                    statGains[3] += card.type_stats / 5;
+                    statGains[4] += card.type_stats / 5;
+                }
+            }
+        }
+        
+        let trainingDays = 65 - weights.races[0] - weights.races[1] - weights.races[2];
+        if(cardType === 6) trainingDays -= 5;
+        let daysToBond = bondNeeded / weights.bondPerDay;
+        let rainbowDays = trainingDays - daysToBond;
+        let specialty = (100 + card.specialty_rate + weights.bonusSpec) * card.unique_specialty * card.fs_specialty;
+        let specialtyPercent = specialty / (450 + specialty);
+        let otherPercent = 100 / (450 + specialty);
+        let offstatAppearanceDenominator = card.offstat_appearance_denominator;
+        let daysPerTraining = [0,0,0,0,0];
+        let bondedDaysPerTraining = [0,0,0,0,0];
+        let rainbowTraining = 0;
+        
+        let rainbowOverride = 1;
+        if (cardType != 6) {
+            let chanceOfSingleRainbow = 0;
+            let cardsOfThisType = cardsPerType[cardType].slice();
+            card.rainbowSpecialty = specialtyPercent;
+            card.offSpecialty = otherPercent;
+            cardsOfThisType.push(card);
+            for (let j = 0; j < cardsOfThisType.length; j++) {
+                chanceOfSingleRainbow += CalculateCombinationChance([cardsOfThisType[j]], cardsOfThisType, cardType);
+            }
+            rainbowOverride = 1 - (chanceOfPreferredRainbow * chanceOfSingleRainbow);
+        }
+        
+        // Calculate appearance rates on each training
+        for (let stat = 0; stat < 5; stat++) {
+            if (stat == cardType) {
+                rainbowTraining = specialtyPercent * rainbowDays * rainbowOverride;
+                daysPerTraining[stat] = specialtyPercent * daysToBond;
+            } else {
+                daysPerTraining[stat] = otherPercent / offstatAppearanceDenominator * daysToBond;
+                bondedDaysPerTraining[stat] = otherPercent / offstatAppearanceDenominator * rainbowDays;
+            }
+        }
+
+        if (weights.onlySummer) {
+            rainbowTraining = 8 * specialtyPercent * rainbowOverride;
+        }
+
+        if (card.fs_ramp[0] > 0) {
+            let current_bonus = 0;
+            let total = 0;
+            for (let j = rainbowTraining * 0.66; j > 0; j--) {
+                total += current_bonus;
+                current_bonus = Math.min(current_bonus + card.fs_ramp[0], card.fs_ramp[1]);
+            }
+            card.unique_fs_bonus = 1 + total / rainbowTraining / 100;
+        }
+
+        // Stats from cross-training
+        info.non_rainbow_gains = [0,0,0,0,0,0,0];
+        for (let training = 0; training < 5; training ++) {
+            let gains = weights.unbondedTrainingGain[training];
+            let daysOnThisTraining = daysPerTraining[training];
+            energyGain += daysOnThisTraining * gains[6] * card.energy_discount;
+
+            let trainingGains = CalculateCrossTrainingGain(gains, weights, card, selectedCards, training, daysOnThisTraining, typeCount, false);
+            
+            for (let stat = 0; stat < 6; stat ++) {
+                statGains[stat] += trainingGains[stat];
+                info.non_rainbow_gains[stat] += trainingGains[stat];
+            }
+            info.non_rainbow_gains[6] += (daysOnThisTraining * gains[6] * card.energy_discount);
+        }
+
+        // Stats from cross-training while bonded
+        for (let training = 0; training < 5; training ++) {
+            let gains = weights.bondedTrainingGain[training];
+            let daysOnThisTraining = bondedDaysPerTraining[training];
+            energyGain += daysOnThisTraining * gains[6] * card.energy_discount;
+            energyGain += daysOnThisTraining * gains[6] * card.fs_energy;
+
+            let trainingGains = CalculateCrossTrainingGain(gains, weights, card, selectedCards, training, daysOnThisTraining, typeCount, true);
+            
+            for (let stat = 0; stat < 6; stat ++) {
+                statGains[stat] += trainingGains[stat];
+                info.non_rainbow_gains[stat] += trainingGains[stat];
+            }
+
+            info.non_rainbow_gains[6] += (daysOnThisTraining * gains[6] * card.energy_discount);
+            info.non_rainbow_gains[6] += (daysOnThisTraining * gains[6] * card.fs_energy);
+
+            if (training == 4 && card.group) {
+                energyGain += daysOnThisTraining * card.wisdom_recovery / 5;
+            }
+        }
+
+        info.rainbow_gains = [0,0,0,0,0,0,0];
+
+        // Stats from rainbows
+        if (cardType < 6) {
+            energyGain += rainbowTraining * card.wisdom_recovery;
+            let specialtyGains = weights.bondedTrainingGain[cardType];
+            if (weights.onlySummer) {
+                specialtyGains = weights.summerTrainingGain[cardType];
+            }
+            let trainingGains = CalculateTrainingGain(specialtyGains, weights, card, selectedCards, cardType, rainbowTraining, true, typeCount);
+
+            info.rainbow_gains = trainingGains.slice();
+            info.rainbow_gains.push(rainbowTraining * card.wisdom_recovery);
+
+            for (let stat = 0; stat < 6; stat ++) {
+                statGains[stat] += trainingGains[stat];
+            }
+        }
+
+        info.race_bonus_gains = 0;
+
+        // Race bonus
+        for (let raceType = 0; raceType < 4; raceType++) {
+            for (let stat = 0; stat < 6; stat ++) {
+                statGains[stat] += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType];
+                info.race_bonus_gains += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType];
+            }
+        }
+
+        // Convert stat gains to score
+        
+        score += GainsToScore(statGains, weights);
+        score += energyGain * weights.stats[6];
+
+        if(weights.scenarioLink.indexOf(card.char_name) > -1) {
+            score += weights.scenarioBonus;
+        }
+
+        statGains.map((statGain, i) => {
+            deckStatGains[i] += statGain;
+        });
+    }
+
+    return deckStatGains;
+}
