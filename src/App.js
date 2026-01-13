@@ -6,7 +6,7 @@ export default function App() {
     return (
         <div className="App">
           <Routes>
-              <Route exact path="/uma-stat-threshold-helper" element={<MainPage />} />
+              <Route path="/" element={<MainPage />} />
           </Routes>
         </div>
     )
