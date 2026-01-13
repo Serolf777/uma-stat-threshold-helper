@@ -41,7 +41,7 @@ const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardCl
                 : <></>
             }
             <img 
-                src={`/cardImages/support_card_s_${cardId}.png`} 
+                src={`${process.env.PUBLIC_URL}/cardImages/support_card_s_${cardId}.png`} 
                 className={`${sameCharInDeck ? "in-deck" : "" }`}
                 alt={alt} 
                 height={100} 
@@ -55,7 +55,7 @@ const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardCl
                 </div>
             </div>
             <img 
-                src={`/statImages/${stat}.png`} 
+                src={`${process.env.PUBLIC_URL}/statImages/${stat}.png`} 
                 className={`stat-type ${stat}`} 
                 alt={`stat-type ${stat}`} 
                 height={25} 
