@@ -22,6 +22,7 @@ const UmaProject: FC = () => {
     const [umaScores, setUmaScores] = useState<SupportCardScore[]>([]);
     const [avgStatGains, setAvgStatGains] = useState([0,0,0,0,0,0,0]);
     const [currentScenario, setCurrentScenario] = useState(defaultAoharuState);
+    const [highRollChance, setHighRollChance] = useState<number>(0);
     const updatedCards: SupportCardWithScore[] = cards.map(card => ({...card,  score: 0 }));
 
     function optionSelected(option : string) {
@@ -143,7 +144,14 @@ const UmaProject: FC = () => {
         };
 
         setUmaScores(processCards(filteredCards, combinedWeights, selectedCards));
-        setAvgStatGains(CalculateDeckGains(combinedWeights, selectedCards));
+
+        const targetStats = statTypes.map((stat) => {
+            return Number(getValues(`uma-target-${stat.type}`));
+        });
+        const deckGains = CalculateDeckGains(combinedWeights, selectedCards, targetStats);
+
+        setAvgStatGains(deckGains.effectiveGains);
+        setHighRollChance(deckGains.highRollChance);
     };
 
     function umaBonusChanged(val: string, index: number) {
@@ -342,9 +350,12 @@ const UmaProject: FC = () => {
                             </div>
                             <div className="avg-stat-gains">
                                 {statTypes.map((statType, i) => {
-                                    return <div className="avg-stat-gain">{statType.type}: {avgStatGains[i].toFixed(0)}</div>
+                                    return <div className="avg-stat-gain" key={`avg-stat-gain-${statType.type}`}>{statType.type}: {avgStatGains[i].toFixed(0)}</div>
                                 })}
                             </div>
+                        </div>
+                        <div className="high-roll-chance">
+                                High Roll Chance : {(highRollChance * 100).toFixed(2)} %
                         </div>
                         <div className="total-race-bonus">
                             Total Race Bonuses : {totalRaceBonus}

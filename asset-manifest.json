@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/uma-stat-threshold-helper/static/css/main.9bba3950.css",
+    "main.js": "/uma-stat-threshold-helper/static/js/main.63ab78eb.js",
+    "static/js/453.93cfdedb.chunk.js": "/uma-stat-threshold-helper/static/js/453.93cfdedb.chunk.js",
+    "index.html": "/uma-stat-threshold-helper/index.html",
+    "main.9bba3950.css.map": "/uma-stat-threshold-helper/static/css/main.9bba3950.css.map",
+    "main.63ab78eb.js.map": "/uma-stat-threshold-helper/static/js/main.63ab78eb.js.map",
+    "453.93cfdedb.chunk.js.map": "/uma-stat-threshold-helper/static/js/453.93cfdedb.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.9bba3950.css",
+    "static/js/main.63ab78eb.js"
+  ]
+}

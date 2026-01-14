@@ -496,7 +496,40 @@ function CalculateCombinationChance(combination, cards, trainingType) {
     return chance;
 }
 
-export function CalculateDeckGains(weights, selectedCards) {
+function calculateHighRollChance(deckStatGains, targetStats, priorityOrder) {
+    let chance = 1;
+    const maxPriority = priorityOrder.length - 1;
+
+    for (let p = 0; p < priorityOrder.length; p++) {
+        const stat = priorityOrder[p];
+        const expected = deckStatGains[stat];
+        const target = targetStats[stat];
+
+        if (target <= 0) continue;
+
+        const baseChance = Math.min(expected / target, 1);
+
+        // Higher priority stats penalize more
+        const priorityWeight = 1 - (p / maxPriority) * 0.4;
+        const statChance = Math.pow(baseChance, priorityWeight);
+
+        chance *= statChance;
+
+        if (chance === 0) break;
+    }
+
+    return chance;
+}
+
+function priorityWeight(current, target) {
+    if (!target || target <= 0) return 1;
+
+    if (current >= target) return 0;
+
+    return (target - current) / target;
+}
+
+export function CalculateDeckGains(weights, selectedCards, targetStats, priorityOrder = [0, 1, 2, 4, 3]) {
     let deckStatGains = [0,0,0,0,0,0];
 
     // Calculate some stuff here so we don't have to do it a million times later
@@ -561,7 +594,6 @@ export function CalculateDeckGains(weights, selectedCards) {
         let typeCount = presentTypesWithCard.filter(Boolean).length;
 
         // Add starting stats and stats from events
-        let score = card.sb;
         let energyGain = 0;
         let statGains = card.starting_stats.slice();
         statGains.push(0);
@@ -572,28 +604,54 @@ export function CalculateDeckGains(weights, selectedCards) {
         if (cardEvents[card.id]) {
             info.event_stats = cardEvents[card.id].slice();
             for (let stat = 0; stat < 6; stat++) {
-                statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up;
+
+                if (targetStats && stat < 5) {
+                    const weight = priorityWeight(
+                        deckStatGains[stat],
+                        targetStats[stat]
+                    );
+
+                    statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up * weight;
+                } else {
+                    statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up;
+                }
                 info.event_stats[stat] = cardEvents[card.id][stat] * card.effect_size_up;
             }
             energyGain += cardEvents[card.id][6] * card.energy_up;
             bondNeeded -= cardEvents[card.id][7];
-            score += cardEvents[card.id][7];
         } else {
             // Dummy event values for cards we don't yet know the events for
             if (card.rarity === 2) {
                 // 35 total
                 for (let stat = 0; stat < 5; stat++) {
-                    statGains[stat] += 7;
+                    if (targetStats && stat < 5) {
+                        const weight = priorityWeight(
+                            deckStatGains[stat],
+                            targetStats[stat]
+                        );
+
+                        statGains[stat] += 7 * weight;
+                    } else {
+                        statGains[stat] += 7;
+                    }
                 }
                 bondNeeded -= 5;
             } else if (card.rarity === 3) {
                 // 45 total
                 for (let stat = 0; stat < 5; stat++) {
-                    statGains[stat] += 9;
+                    if (targetStats && stat < 5) {
+                        const weight = priorityWeight(
+                            deckStatGains[stat],
+                            targetStats[stat]
+                        );
+
+                        statGains[stat] += 9 * weight;
+                    } else {
+                        statGains[stat] += 9;
+                    }
                 }
                 bondNeeded -= 5;
             }
-            score += 5;
         }
 
         if (card.type_stats > 0) {
@@ -671,7 +729,16 @@ export function CalculateDeckGains(weights, selectedCards) {
             let trainingGains = CalculateCrossTrainingGain(gains, weights, card, selectedCards, training, daysOnThisTraining, typeCount, false);
             
             for (let stat = 0; stat < 6; stat ++) {
-                statGains[stat] += trainingGains[stat];
+                if (targetStats && stat < 5) {
+                    const weight = priorityWeight(
+                        deckStatGains[stat],
+                        targetStats[stat]
+                    );
+
+                    statGains[stat] += trainingGains[stat] * weight;
+                } else {
+                    statGains[stat] += trainingGains[stat];
+                }
                 info.non_rainbow_gains[stat] += trainingGains[stat];
             }
             info.non_rainbow_gains[6] += (daysOnThisTraining * gains[6] * card.energy_discount);
@@ -687,7 +754,16 @@ export function CalculateDeckGains(weights, selectedCards) {
             let trainingGains = CalculateCrossTrainingGain(gains, weights, card, selectedCards, training, daysOnThisTraining, typeCount, true);
             
             for (let stat = 0; stat < 6; stat ++) {
-                statGains[stat] += trainingGains[stat];
+                if (targetStats && stat < 5) {
+                    const weight = priorityWeight(
+                        deckStatGains[stat],
+                        targetStats[stat]
+                    );
+
+                    statGains[stat] += trainingGains[stat] * weight;
+                } else {
+                    statGains[stat] += trainingGains[stat];
+                }
                 info.non_rainbow_gains[stat] += trainingGains[stat];
             }
 
@@ -714,7 +790,16 @@ export function CalculateDeckGains(weights, selectedCards) {
             info.rainbow_gains.push(rainbowTraining * card.wisdom_recovery);
 
             for (let stat = 0; stat < 6; stat ++) {
-                statGains[stat] += trainingGains[stat];
+                if (targetStats && stat < 5) {
+                    const weight = priorityWeight(
+                        deckStatGains[stat],
+                        targetStats[stat]
+                    );
+
+                    statGains[stat] += trainingGains[stat] * weight;
+                } else {
+                    statGains[stat] += trainingGains[stat];
+                }
             }
         }
 
@@ -723,18 +808,18 @@ export function CalculateDeckGains(weights, selectedCards) {
         // Race bonus
         for (let raceType = 0; raceType < 4; raceType++) {
             for (let stat = 0; stat < 6; stat ++) {
-                statGains[stat] += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType];
+                if (targetStats && stat < 5) {
+                    const weight = priorityWeight(
+                        deckStatGains[stat],
+                        targetStats[stat]
+                    );
+
+                    statGains[stat] += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType] * weight;
+                } else {
+                    statGains[stat] += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType];
+                }
                 info.race_bonus_gains += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType];
             }
-        }
-
-        // Convert stat gains to score
-        
-        score += GainsToScore(statGains, weights);
-        score += energyGain * weights.stats[6];
-
-        if(weights.scenarioLink.indexOf(card.char_name) > -1) {
-            score += weights.scenarioBonus;
         }
 
         statGains.map((statGain, i) => {
@@ -742,5 +827,19 @@ export function CalculateDeckGains(weights, selectedCards) {
         });
     }
 
-    return deckStatGains;
+    const totalGains = [
+        deckStatGains[0],
+        deckStatGains[1],
+        deckStatGains[2],
+        deckStatGains[3],
+        deckStatGains[4]
+    ];
+
+    const result = {
+        averageGains: totalGains,
+        effectiveGains: totalGains,
+        highRollChance: calculateHighRollChance(totalGains, targetStats, priorityOrder)
+    };
+
+    return result;
 }
