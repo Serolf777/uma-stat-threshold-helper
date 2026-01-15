@@ -148,9 +148,13 @@ const UmaProject: FC = () => {
         const targetStats = statTypes.map((stat) => {
             return Number(getValues(`uma-target-${stat.type}`));
         });
-        const deckGains = CalculateDeckGains(combinedWeights, selectedCards, targetStats);
+        const additionalStats = statTypes.map((stat) => {
+            return Number(getValues(`uma-additional-stat-${stat.type}`));
+        });
 
-        setAvgStatGains(deckGains.effectiveGains);
+        const deckGains = CalculateDeckGains(combinedWeights, selectedCards, targetStats, additionalStats);
+
+        setAvgStatGains(deckGains.avgStatGains);
         setHighRollChance(deckGains.highRollChance);
     };
 
@@ -164,6 +168,10 @@ const UmaProject: FC = () => {
             });
         }
     };
+
+    useEffect(() => {
+        handleSubmitData();
+    }, [selectedCards, statSelected])
 
     return (
         <div className="uma-project-container">
@@ -247,8 +255,38 @@ const UmaProject: FC = () => {
                                                         defaultValue="600" 
                                                         min="0" 
                                                         max="1200" 
-                                                        className={`uma-target-${statType.type}`} 
+                                                        className={`uma-target-${statType.type}`}
                                                         {...register(`uma-target-${statType.type}`)}
+                                                    />
+                                                </div>
+                                            )
+                                        }
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="additional-stats-container">
+                                <div className="additional-stats-header">
+                                    Additional Stats
+                                </div>
+                                <div className="additional-stats-helper-note">
+                                    This is additional stats from start stat values, race events, stat sparks during your run, etc (do not include card events)
+                                </div>
+                                <div className="additional-stats">
+                                    {statTypes.map(statType => 
+                                        {
+                                            return (
+                                                <div key={`additional-stat-${statType.type}`}>
+                                                    <label>
+                                                        {statType.type}
+                                                    </label>
+                                                    <input 
+                                                        type="number" 
+                                                        defaultValue="90" 
+                                                        min="0" 
+                                                        max="400" 
+                                                        className={`uma-additional-stat-${statType.type}`} 
+                                                        {...register(`uma-additional-stat-${statType.type}`)}
                                                     />
                                                 </div>
                                             )
@@ -319,7 +357,7 @@ const UmaProject: FC = () => {
                             </div>
                         </div>
                         <button type="submit" value="submit" onClick={handleSubmitData}> 
-                            Submit 
+                            Update Settings 
                         </button>
                     </form>
                 </FormProvider>

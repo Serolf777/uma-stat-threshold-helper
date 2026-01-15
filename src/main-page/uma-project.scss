@@ -93,6 +93,31 @@
                 }
             }
 
+            .additional-stats-container {
+                .additional-stats-header {
+                    font-weight: bold;
+                }
+
+                .additional-stats-helper-note {
+                    font-style: italic;
+                }
+
+                .additional-stats {
+                    display: flex;
+                    justify-content: center;
+                    flex-direction: row;
+                    margin: 8px;
+
+                    label, input {
+                        margin-left: 4px;
+                    }
+
+                    input {
+                        width: 80px;
+                    }
+                }
+            }
+
             .dropdown-menu {
                 margin: 12px;
             }

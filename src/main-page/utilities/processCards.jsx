@@ -529,7 +529,7 @@ function priorityWeight(current, target) {
     return (target - current) / target;
 }
 
-export function CalculateDeckGains(weights, selectedCards, targetStats, priorityOrder = [0, 1, 2, 4, 3]) {
+export function CalculateDeckGains(weights, selectedCards, targetStats, additionalStats, priorityOrder = [0, 1, 2, 4, 3]) {
     let deckStatGains = [0,0,0,0,0,0];
 
     // Calculate some stuff here so we don't have to do it a million times later
@@ -604,17 +604,7 @@ export function CalculateDeckGains(weights, selectedCards, targetStats, priority
         if (cardEvents[card.id]) {
             info.event_stats = cardEvents[card.id].slice();
             for (let stat = 0; stat < 6; stat++) {
-
-                if (targetStats && stat < 5) {
-                    const weight = priorityWeight(
-                        deckStatGains[stat],
-                        targetStats[stat]
-                    );
-
-                    statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up * weight;
-                } else {
-                    statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up;
-                }
+                statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up;
                 info.event_stats[stat] = cardEvents[card.id][stat] * card.effect_size_up;
             }
             energyGain += cardEvents[card.id][6] * card.energy_up;
@@ -823,22 +813,16 @@ export function CalculateDeckGains(weights, selectedCards, targetStats, priority
         }
 
         statGains.map((statGain, i) => {
-            deckStatGains[i] += statGain;
+            console.log(additionalStats[i])
+            deckStatGains[i] += statGain + info.event_stats[i] + info.starting_stats[i];
         });
     }
 
-    const totalGains = [
-        deckStatGains[0],
-        deckStatGains[1],
-        deckStatGains[2],
-        deckStatGains[3],
-        deckStatGains[4]
-    ];
+    const avgStatGains = deckStatGains.slice(0, 5);
 
     const result = {
-        averageGains: totalGains,
-        effectiveGains: totalGains,
-        highRollChance: calculateHighRollChance(totalGains, targetStats, priorityOrder)
+        avgStatGains: avgStatGains,
+        highRollChance: calculateHighRollChance(avgStatGains, targetStats, priorityOrder)
     };
 
     return result;
