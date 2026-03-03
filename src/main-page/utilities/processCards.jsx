@@ -496,334 +496,117 @@ function CalculateCombinationChance(combination, cards, trainingType) {
     return chance;
 }
 
-function calculateHighRollChance(deckStatGains, targetStats, priorityOrder) {
-    let chance = 1;
-    const maxPriority = priorityOrder.length - 1;
-
-    for (let p = 0; p < priorityOrder.length; p++) {
-        const stat = priorityOrder[p];
-        const expected = deckStatGains[stat];
-        const target = targetStats[stat];
-
-        if (target <= 0) continue;
-
-        const baseChance = Math.min(expected / target, 1);
-
-        // Higher priority stats penalize more
-        const priorityWeight = 1 - (p / maxPriority) * 0.4;
-        const statChance = Math.pow(baseChance, priorityWeight);
-
-        chance *= statChance;
-
-        if (chance === 0) break;
-    }
-
-    return chance;
-}
-
-function priorityWeight(current, target) {
-    if (!target || target <= 0) return 1;
-
-    if (current >= target) return 0;
-
-    return (target - current) / target;
-}
-
-export function CalculateDeckGains(weights, selectedCards, targetStats, additionalStats, priorityOrder = [0, 1, 2, 4, 3]) {
-    let deckStatGains = [0,0,0,0,0,0];
-
-    // Calculate some stuff here so we don't have to do it a million times later
-    let presentTypes = [false,false,false,false,false,false,false];
-    let cardsPerType = [[],[],[],[],[],[],[]];
-    let baseBondNeeded = 0;
-    for (let card = 0; card < selectedCards.length; card++) {
-        let selectedCard = selectedCards[card];
-        let cardSpecialty = (100 + selectedCard.specialty_rate + weights.bonusSpec) * selectedCard.unique_specialty * selectedCard.fs_specialty;
-        let cardSpecialtyPercent = (cardSpecialty) / (450 + cardSpecialty)
-        selectedCard.rainbowSpecialty = cardSpecialtyPercent;
-        selectedCard.offSpecialty = 100 / (450 + cardSpecialty);
-        selectedCard.cardType = selectedCard.type;
-        selectedCard.index = card;
-        presentTypes[selectedCard.cardType] = true;
-        cardsPerType[selectedCard.cardType].push(selectedCard);
-        if (selectedCard.cardType == 6) {
-            baseBondNeeded += 55 - selectedCard.sb
-        } else {
-            baseBondNeeded += 75 - selectedCard.sb
-        }
-        if (cardEvents[selectedCard.id]) {
-            baseBondNeeded -= cardEvents[selectedCard.id][7];
-        }
-    }
-    let preferredRainbowChances = [0,0,0,0,0];
-    for (let i = 0; i < 5; i++) {
-        if (i != weights.type) {
-            if(cardsPerType[i].length > 0) {
-                let minimum = 1;
-                if (weights.prioritize) {
-                    minimum = 2;
-                }
-                let combos = GetCombinations(cardsPerType[i], minimum);
-                if (combos.length > 0) {
-                    preferredRainbowChances[i] = combos.reduce((current, combo) => {
-                        return current += CalculateCombinationChance(combo, undefined, i);
-                    }, 0);
-                }
-            }
-        }
-    }
+function calculateHighRollChance(avgStatGains, targetStats, priorityOrder, selectedCards) {
+    if (!targetStats || !avgStatGains) return 0;
     
-    let chanceOfPreferredRainbow = 1 - preferredRainbowChances.reduce((current, chance) => {
-        return current * (1 - chance);
-    }, 1);
+    let totalScore = 0;
+    let totalWeight = 0;
 
-    for (let i = 0; i < selectedCards.length; i++) {
-        let info = {};
-        let card = JSON.parse(JSON.stringify(selectedCards[i]));
-        let cardType = card.type;
-        card.index = 6;
-        let bondNeeded = baseBondNeeded;
-        if (cardType == 6) {
-            bondNeeded += 55 - card.sb
+    priorityOrder.forEach((stat, index) => {
+        const mean = Number(avgStatGains[stat]) || 1;
+        const target = Number(targetStats[stat]);
+        if (!target || target <= 0) return;
+
+        const diff = target - mean;
+        // High-level play has a very "fat" right tail. 
+        // We use a massive Sigma to show that 200-300 point swings are common.
+        const sigma = Math.max(40, mean * 0.22);
+
+        let statProb;
+        if (diff <= 0) {
+            // If you hit the average, you are basically guaranteed (95%+) 
+            // unless the target is 500 points below the average.
+            statProb = 0.95 + Math.min(0.04, Math.abs(diff) / 2000);
         } else {
-            bondNeeded += 75 - card.sb
+            // Soft-sigmoid: Even being 200 points under average only drops prob to ~30-40%
+            statProb = 1 / (1 + Math.exp(0.65 * (diff / sigma)));
         }
-        let presentTypesWithCard = presentTypes.slice();
-        presentTypesWithCard[cardType] = true;
 
-        let typeCount = presentTypesWithCard.filter(Boolean).length;
-
-        // Add starting stats and stats from events
-        let energyGain = 0;
-        let statGains = card.starting_stats.slice();
-        statGains.push(0);
+        // Weighting: Priority 0/1 are nearly the entire score (80% weight)
+        const weight = Math.pow(0.5, index); 
         
-        info.starting_stats = card.starting_stats.slice();
-        info.event_stats = [0,0,0,0,0,0,0];
-        
-        if (cardEvents[card.id]) {
-            info.event_stats = cardEvents[card.id].slice();
-            for (let stat = 0; stat < 6; stat++) {
-                statGains[stat] += cardEvents[card.id][stat] * card.effect_size_up;
-                info.event_stats[stat] = cardEvents[card.id][stat] * card.effect_size_up;
-            }
-            energyGain += cardEvents[card.id][6] * card.energy_up;
-            bondNeeded -= cardEvents[card.id][7];
-        } else {
-            // Dummy event values for cards we don't yet know the events for
-            if (card.rarity === 2) {
-                // 35 total
-                for (let stat = 0; stat < 5; stat++) {
-                    if (targetStats && stat < 5) {
-                        const weight = priorityWeight(
-                            deckStatGains[stat],
-                            targetStats[stat]
-                        );
+        totalScore += (statProb * weight);
+        totalWeight += weight;
+    });
 
-                        statGains[stat] += 7 * weight;
-                    } else {
-                        statGains[stat] += 7;
-                    }
-                }
-                bondNeeded -= 5;
-            } else if (card.rarity === 3) {
-                // 45 total
-                for (let stat = 0; stat < 5; stat++) {
-                    if (targetStats && stat < 5) {
-                        const weight = priorityWeight(
-                            deckStatGains[stat],
-                            targetStats[stat]
-                        );
+    if (totalWeight <= 0) return 1.0;
 
-                        statGains[stat] += 9 * weight;
-                    } else {
-                        statGains[stat] += 9;
-                    }
-                }
-                bondNeeded -= 5;
-            }
-        }
+    const result = totalScore / totalWeight;
+    // Boost the result slightly to reflect that 'High Roll' implies the BEST of several runs
+    const optimisticResult = Math.pow(result, 0.8); 
 
-        if (card.type_stats > 0) {
-            statGains[card.type] += card.type_stats;
-            for (let sc = 0; sc < selectedCards.length; sc++) {
-                if(selectedCards[sc].type < 6) {
-                    statGains[selectedCards[sc].type] += card.type_stats;
-                } else {
-                    statGains[0] += card.type_stats / 5;
-                    statGains[1] += card.type_stats / 5;
-                    statGains[2] += card.type_stats / 5;
-                    statGains[3] += card.type_stats / 5;
-                    statGains[4] += card.type_stats / 5;
-                }
-            }
-        }
-        
-        let trainingDays = 65 - weights.races[0] - weights.races[1] - weights.races[2];
-        if(cardType === 6) trainingDays -= 5;
-        let daysToBond = bondNeeded / weights.bondPerDay;
-        let rainbowDays = trainingDays - daysToBond;
-        let specialty = (100 + card.specialty_rate + weights.bonusSpec) * card.unique_specialty * card.fs_specialty;
-        let specialtyPercent = specialty / (450 + specialty);
-        let otherPercent = 100 / (450 + specialty);
-        let offstatAppearanceDenominator = card.offstat_appearance_denominator;
-        let daysPerTraining = [0,0,0,0,0];
-        let bondedDaysPerTraining = [0,0,0,0,0];
-        let rainbowTraining = 0;
-        
-        let rainbowOverride = 1;
-        if (cardType != 6) {
-            let chanceOfSingleRainbow = 0;
-            let cardsOfThisType = cardsPerType[cardType].slice();
-            card.rainbowSpecialty = specialtyPercent;
-            card.offSpecialty = otherPercent;
-            cardsOfThisType.push(card);
-            for (let j = 0; j < cardsOfThisType.length; j++) {
-                chanceOfSingleRainbow += CalculateCombinationChance([cardsOfThisType[j]], cardsOfThisType, cardType);
-            }
-            rainbowOverride = 1 - (chanceOfPreferredRainbow * chanceOfSingleRainbow);
-        }
-        
-        // Calculate appearance rates on each training
-        for (let stat = 0; stat < 5; stat++) {
-            if (stat == cardType) {
-                rainbowTraining = specialtyPercent * rainbowDays * rainbowOverride;
-                daysPerTraining[stat] = specialtyPercent * daysToBond;
-            } else {
-                daysPerTraining[stat] = otherPercent / offstatAppearanceDenominator * daysToBond;
-                bondedDaysPerTraining[stat] = otherPercent / offstatAppearanceDenominator * rainbowDays;
-            }
-        }
+    return parseFloat(optimisticResult.toFixed(4));
+}
 
-        if (weights.onlySummer) {
-            rainbowTraining = 8 * specialtyPercent * rainbowOverride;
-        }
+export function CalculateDeckGains(
+    weights,
+    selectedCards,
+    targetStats,
+    additionalStats = [0, 0, 0, 0, 0],
+    priorityOrder = [0, 1, 2, 4, 3]
+) {
+    if (!selectedCards || selectedCards.length === 0) return { avgStatGains: [0, 0, 0, 0, 0], highRollChance: 0 };
 
-        if (card.fs_ramp[0] > 0) {
-            let current_bonus = 0;
-            let total = 0;
-            for (let j = rainbowTraining * 0.66; j > 0; j--) {
-                total += current_bonus;
-                current_bonus = Math.min(current_bonus + card.fs_ramp[0], card.fs_ramp[1]);
-            }
-            card.unique_fs_bonus = 1 + total / rainbowTraining / 100;
-        }
+    const witCards = selectedCards.filter(c => c?.type === 4).length;
+    const restTurns = Math.max(1, 8 - (witCards * 1.5)); 
+    let remainingTurns = Math.max(0, 65 - (weights?.races?.reduce((a, b) => a + (Number(b) || 0), 0) || 0) - restTurns);
 
-        // Stats from cross-training
-        info.non_rainbow_gains = [0,0,0,0,0,0,0];
-        for (let training = 0; training < 5; training ++) {
-            let gains = weights.unbondedTrainingGain[training];
-            let daysOnThisTraining = daysPerTraining[training];
-            energyGain += daysOnThisTraining * gains[6] * card.energy_discount;
+    let finalAvgStats = [0, 0, 0, 0, 0];
+    const cardCounts = [0, 0, 0, 0, 0];
+    selectedCards.forEach(c => { if (c?.type < 5) cardCounts[c.type]++; });
 
-            let trainingGains = CalculateCrossTrainingGain(gains, weights, card, selectedCards, training, daysOnThisTraining, typeCount, false);
-            
-            for (let stat = 0; stat < 6; stat ++) {
-                if (targetStats && stat < 5) {
-                    const weight = priorityWeight(
-                        deckStatGains[stat],
-                        targetStats[stat]
-                    );
-
-                    statGains[stat] += trainingGains[stat] * weight;
-                } else {
-                    statGains[stat] += trainingGains[stat];
-                }
-                info.non_rainbow_gains[stat] += trainingGains[stat];
-            }
-            info.non_rainbow_gains[6] += (daysOnThisTraining * gains[6] * card.energy_discount);
-        }
-
-        // Stats from cross-training while bonded
-        for (let training = 0; training < 5; training ++) {
-            let gains = weights.bondedTrainingGain[training];
-            let daysOnThisTraining = bondedDaysPerTraining[training];
-            energyGain += daysOnThisTraining * gains[6] * card.energy_discount;
-            energyGain += daysOnThisTraining * gains[6] * card.fs_energy;
-
-            let trainingGains = CalculateCrossTrainingGain(gains, weights, card, selectedCards, training, daysOnThisTraining, typeCount, true);
-            
-            for (let stat = 0; stat < 6; stat ++) {
-                if (targetStats && stat < 5) {
-                    const weight = priorityWeight(
-                        deckStatGains[stat],
-                        targetStats[stat]
-                    );
-
-                    statGains[stat] += trainingGains[stat] * weight;
-                } else {
-                    statGains[stat] += trainingGains[stat];
-                }
-                info.non_rainbow_gains[stat] += trainingGains[stat];
-            }
-
-            info.non_rainbow_gains[6] += (daysOnThisTraining * gains[6] * card.energy_discount);
-            info.non_rainbow_gains[6] += (daysOnThisTraining * gains[6] * card.fs_energy);
-
-            if (training == 4 && card.group) {
-                energyGain += daysOnThisTraining * card.wisdom_recovery / 5;
-            }
-        }
-
-        info.rainbow_gains = [0,0,0,0,0,0,0];
-
-        // Stats from rainbows
-        if (cardType < 6) {
-            energyGain += rainbowTraining * card.wisdom_recovery;
-            let specialtyGains = weights.bondedTrainingGain[cardType];
-            if (weights.onlySummer) {
-                specialtyGains = weights.summerTrainingGain[cardType];
-            }
-            let trainingGains = CalculateTrainingGain(specialtyGains, weights, card, selectedCards, cardType, rainbowTraining, true, typeCount);
-
-            info.rainbow_gains = trainingGains.slice();
-            info.rainbow_gains.push(rainbowTraining * card.wisdom_recovery);
-
-            for (let stat = 0; stat < 6; stat ++) {
-                if (targetStats && stat < 5) {
-                    const weight = priorityWeight(
-                        deckStatGains[stat],
-                        targetStats[stat]
-                    );
-
-                    statGains[stat] += trainingGains[stat] * weight;
-                } else {
-                    statGains[stat] += trainingGains[stat];
-                }
-            }
-        }
-
-        info.race_bonus_gains = 0;
-
-        // Race bonus
-        for (let raceType = 0; raceType < 4; raceType++) {
-            for (let stat = 0; stat < 6; stat ++) {
-                if (targetStats && stat < 5) {
-                    const weight = priorityWeight(
-                        deckStatGains[stat],
-                        targetStats[stat]
-                    );
-
-                    statGains[stat] += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType] * weight;
-                } else {
-                    statGains[stat] += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType];
-                }
-                info.race_bonus_gains += raceRewards[raceType][stat] * (card.race_bonus / 100) * weights.races[raceType];
-            }
-        }
-
-        statGains.map((statGain, i) => {
-            console.log(additionalStats[i])
-            deckStatGains[i] += statGain + info.event_stats[i] + info.starting_stats[i];
-        });
+    // 1. Pre-Allocation: Add Baseline + Events + Starting Stats immediately
+    const scenarioBaseline = [160, 100, 130, 90, 200]; 
+    for (let i = 0; i < 5; i++) {
+        finalAvgStats[i] = (Number(additionalStats[i]) || 0) + scenarioBaseline[i];
     }
+    selectedCards.forEach(card => {
+        if (!card) return;
+        for (let i = 0; i < 5; i++) finalAvgStats[i] += (Number(card.starting_stats?.[i]) || 0);
+        if (cardEvents[card.id]) {
+            for (let i = 0; i < 5; i++) finalAvgStats[i] += (Number(cardEvents[card.id][i]) || 0) * (card.effect_size_up || 1);
+        }
+    });
 
-    const avgStatGains = deckStatGains.slice(0, 5);
+    // 2. Greedy Priority Saturation
+    // Instead of splitting turns, we give the top priority ~50-60% of ALL turns immediately.
+    priorityOrder.forEach((statType, index) => {
+        if (statType === undefined || remainingTurns <= 0) return;
 
-    const result = {
-        avgStatGains: avgStatGains,
-        highRollChance: calculateHighRollChance(avgStatGains, targetStats, priorityOrder)
-    };
+        // Allocation logic: Priority 0 gets the massive lion's share.
+        const allocationMap = [0.55, 0.25, 0.12, 0.05, 0.03];
+        let turnsToSpend = remainingTurns * (allocationMap[index] || 0.02);
+        
+        // If we have cards for this stat, we 'hunt' it more aggressively
+        const concentration = (cardCounts[statType] || 0) / selectedCards.length;
+        turnsToSpend += (remainingTurns * concentration * 0.2);
 
-    return result;
+        turnsToSpend = Math.min(remainingTurns, turnsToSpend);
+        remainingTurns -= turnsToSpend;
+
+        const levelScaling = 1.4; // Average Lv 4 training
+        const base = (weights?.bondedTrainingGain?.[statType] || [0,0,0,0,0,0]).map(v => (Number(v) || 0) * levelScaling);
+        
+        // Apply Training Gains
+        for (let i = 0; i < 5; i++) finalAvgStats[i] += (base[i] || 0) * turnsToSpend;
+
+        // Card Bonuses
+        selectedCards.forEach(card => {
+            const isSpec = card.type === statType;
+            const prob = isSpec ? (card.rainbowSpecialty || 0.25) : 0.08;
+            const bonusGains = isSpec 
+                ? (CalculateTrainingGain(base, weights, card, [], statType, 1, true, 5) || [0,0,0,0,0,0])
+                : (CalculateCrossTrainingGain(base, weights, card, [], statType, 1, 5, true) || [0,0,0,0,0,0]);
+
+            for (let i = 0; i < 5; i++) {
+                const isolated = Math.max(0, (Number(bonusGains[i]) || 0) - (base[i] || 0));
+                finalAvgStats[i] += isolated * prob * turnsToSpend;
+            }
+        });
+    });
+
+    const avgStatGains = finalAvgStats.map(s => Math.round(s || 0));
+    const highRollChance = calculateHighRollChance(avgStatGains, targetStats, priorityOrder, selectedCards);
+
+    return { avgStatGains, highRollChance };
 }

@@ -154,6 +154,8 @@ const UmaProject: FC = () => {
 
         const deckGains = CalculateDeckGains(combinedWeights, selectedCards, targetStats, additionalStats);
 
+        console.log(deckGains)
+
         setAvgStatGains(deckGains.avgStatGains);
         setHighRollChance(deckGains.highRollChance);
     };
