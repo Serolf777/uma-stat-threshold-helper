@@ -11,6 +11,7 @@ import { SupportCard } from './cards/cards-interfaces.tsx';
 import processCards, { CalculateDeckGains } from './utilities/processCards.jsx';
 import { CardStats, defaultAoharuState, ScenarioStates } from './constants/scenarios.tsx';
 import { NumberToStatFull } from '../shared/constants/constants.tsx';
+import Plot from "react-plotly.js";
 
 const UmaProject: FC = () => {
     const methods = useForm();
@@ -154,8 +155,6 @@ const UmaProject: FC = () => {
 
         const deckGains = CalculateDeckGains(combinedWeights, selectedCards, targetStats, additionalStats);
 
-        console.log(deckGains)
-
         setAvgStatGains(deckGains.avgStatGains);
         setHighRollChance(deckGains.highRollChance);
     };
@@ -174,6 +173,22 @@ const UmaProject: FC = () => {
     useEffect(() => {
         handleSubmitData();
     }, [selectedCards, statSelected])
+
+    const firstData = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+    const secondData = [900, 800, 700, 600, 500, 400, 300, 200, 100];
+
+    const chartData = [
+        {
+            x: firstData,
+            y: secondData,
+            type: "line",
+            marker: {color: 'blue' }
+        }
+    ];
+    
+    const layout = {
+        title: { text:"This Will Hold Data" }
+    }
 
     return (
         <div className="uma-project-container">
@@ -362,6 +377,15 @@ const UmaProject: FC = () => {
                             Update Settings 
                         </button>
                     </form>
+                    <div className="graphing-container">
+                        <div className="graphing-header">
+                            Graphing Data (Placeholder)
+                        </div>
+                        <Plot 
+                            data={chartData}
+                            layout={layout}
+                        />
+                    </div>
                 </FormProvider>
                 <div className="uma-cards-container">
                     <div className="selected-deck-container">

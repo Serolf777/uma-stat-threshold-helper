@@ -217,6 +217,15 @@
                 grid-template-columns: repeat(5, 1fr);
             }
         }
+
+        .graphing-container {
+            width: 100%;
+
+            .graphing-header {
+                font-weight: bold;
+                margin: 4px;
+            }
+        }
     }
 }
 .support-card {
