@@ -11,9 +11,11 @@ export interface SupportCardsProps {
     cardScore?: number;
     charName: string;
     selectedCards?: SupportCard[];
+    racingBonus?: number;
+    showRacingBonus?: boolean;
 };
 
-const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardClicked, cardId, cardScore, charName, selectedCards }) => {
+const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardClicked, cardId, cardScore, charName, selectedCards, racingBonus, showRacingBonus }) => {
     let limitBreakString = "";
     let nonLimitBreakString = "";
 
@@ -37,6 +39,12 @@ const SupportCards: FC<SupportCardsProps> = ({ limitBreak, statType, alt, cardCl
             {(cardScore && cardScore !== 0) ?
                 <div className="card-score">
                     {cardScore.toFixed(0)}
+                </div>
+                : <></>
+            }
+            {showRacingBonus && racingBonus ?
+                <div className="racing-bonus">
+                    {`${racingBonus} RB`}
                 </div>
                 : <></>
             }

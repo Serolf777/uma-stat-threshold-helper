@@ -24,6 +24,7 @@ const UmaProject: FC = () => {
     const [avgStatGains, setAvgStatGains] = useState([0,0,0,0,0,0,0]);
     const [currentScenario, setCurrentScenario] = useState(defaultAoharuState);
     const [highRollChance, setHighRollChance] = useState<number>(0);
+    const [showRacingBonus, setShowRacingBonus] = useState<boolean>(false);
     const updatedCards: SupportCardWithScore[] = cards.map(card => ({...card,  score: 0 }));
 
     function optionSelected(option : string) {
@@ -188,7 +189,7 @@ const UmaProject: FC = () => {
     
     const layout = {
         title: { text:"This Will Hold Data" }
-    }
+    };
 
     return (
         <div className="uma-project-container">
@@ -222,6 +223,14 @@ const UmaProject: FC = () => {
                                     })
                                 }
                             </div>
+
+                            <div className="options-container">
+                                <label>
+                                    Show Racing Bonus
+                                </label>
+                                <input type="checkbox" defaultChecked={false} onClick={() => setShowRacingBonus(!showRacingBonus)} />
+                            </div>
+
                             <div className="uma-bonuses-container">
                                 <div className="uma-bonuses-header">
                                     <div className="bonus-header-msg">
@@ -442,6 +451,8 @@ const UmaProject: FC = () => {
                                             cardScore={card.score}
                                             charName={card.char_name}
                                             selectedCards={selectedCards}
+                                            racingBonus={card.race_bonus}
+                                            showRacingBonus={showRacingBonus}
                                             key={`${card.id}-${card.limit_break}`}
                                         />)
                                 })
