@@ -9,9 +9,9 @@ import { RarityFilter, SupportCardWithScore } from './cards/cards-interfaces.tsx
 import { defaultCardsSelected, defaultLbFilter, SupportCardScore } from './constants/constants.tsx';
 import { SupportCard } from './cards/cards-interfaces.tsx';
 import processCards, { CalculateDeckGains } from './utilities/processCards.jsx';
-import { CardStats, defaultAoharuState, ScenarioStates } from './constants/scenarios.tsx';
+import { CardStats, defaultMANTState, ScenarioStates } from './constants/scenarios.tsx';
 import { NumberToStatFull } from '../shared/constants/constants.tsx';
-import Plot from "react-plotly.js";
+import DataGraph from './graph/dataGraph.tsx';
 
 const UmaProject: FC = () => {
     const methods = useForm();
@@ -22,7 +22,7 @@ const UmaProject: FC = () => {
     const [umaSelected, setUmaSelected] = useState<string>("Oguri Cap");
     const [umaScores, setUmaScores] = useState<SupportCardScore[]>([]);
     const [avgStatGains, setAvgStatGains] = useState([0,0,0,0,0,0,0]);
-    const [currentScenario, setCurrentScenario] = useState(defaultAoharuState);
+    const [currentScenario, setCurrentScenario] = useState(defaultMANTState);
     const [highRollChance, setHighRollChance] = useState<number>(0);
     const [showRacingBonus, setShowRacingBonus] = useState<boolean>(false);
     const updatedCards: SupportCardWithScore[] = cards.map(card => ({...card,  score: 0 }));
@@ -175,21 +175,8 @@ const UmaProject: FC = () => {
         handleSubmitData();
     }, [selectedCards, statSelected])
 
-    const firstData = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-    const secondData = [900, 800, 700, 600, 500, 400, 300, 200, 100];
-
-    const chartData = [
-        {
-            x: firstData,
-            y: secondData,
-            type: "line",
-            marker: {color: 'blue' }
-        }
-    ];
-    
-    const layout = {
-        title: { text:"This Will Hold Data" }
-    };
+    const probabilities = [1.0, 0.95, 0.88, 0.78, 0.65, 0.52, 0.38, 0.25, 0.12, 0.05];
+    const expectedAttempts = [5, 12, 25, 40, 65, 90, 130, 180, 250, 320];
 
     return (
         <div className="uma-project-container">
@@ -390,9 +377,9 @@ const UmaProject: FC = () => {
                         <div className="graphing-header">
                             Graphing Data (Placeholder)
                         </div>
-                        <Plot 
-                            data={chartData}
-                            layout={layout}
+                        <DataGraph 
+                            probabilities={probabilities}
+                            expectedAttempts={expectedAttempts}
                         />
                     </div>
                 </FormProvider>

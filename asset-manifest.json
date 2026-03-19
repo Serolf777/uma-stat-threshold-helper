@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/uma-stat-threshold-helper/static/css/main.59b6eeaa.css",
-    "main.js": "/uma-stat-threshold-helper/static/js/main.1483e011.js",
+    "main.css": "/uma-stat-threshold-helper/static/css/main.161462a9.css",
+    "main.js": "/uma-stat-threshold-helper/static/js/main.14ad5e31.js",
     "static/js/453.93cfdedb.chunk.js": "/uma-stat-threshold-helper/static/js/453.93cfdedb.chunk.js",
     "index.html": "/uma-stat-threshold-helper/index.html",
-    "main.59b6eeaa.css.map": "/uma-stat-threshold-helper/static/css/main.59b6eeaa.css.map",
-    "main.1483e011.js.map": "/uma-stat-threshold-helper/static/js/main.1483e011.js.map",
+    "main.161462a9.css.map": "/uma-stat-threshold-helper/static/css/main.161462a9.css.map",
+    "main.14ad5e31.js.map": "/uma-stat-threshold-helper/static/js/main.14ad5e31.js.map",
     "453.93cfdedb.chunk.js.map": "/uma-stat-threshold-helper/static/js/453.93cfdedb.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.59b6eeaa.css",
-    "static/js/main.1483e011.js"
+    "static/css/main.161462a9.css",
+    "static/js/main.14ad5e31.js"
   ]
 }

@@ -508,21 +508,15 @@ function calculateHighRollChance(avgStatGains, targetStats, priorityOrder, selec
         if (!target || target <= 0) return;
 
         const diff = target - mean;
-        // High-level play has a very "fat" right tail. 
-        // We use a massive Sigma to show that 200-300 point swings are common.
         const sigma = Math.max(40, mean * 0.22);
 
         let statProb;
         if (diff <= 0) {
-            // If you hit the average, you are basically guaranteed (95%+) 
-            // unless the target is 500 points below the average.
             statProb = 0.95 + Math.min(0.04, Math.abs(diff) / 2000);
         } else {
-            // Soft-sigmoid: Even being 200 points under average only drops prob to ~30-40%
             statProb = 1 / (1 + Math.exp(0.65 * (diff / sigma)));
         }
 
-        // Weighting: Priority 0/1 are nearly the entire score (80% weight)
         const weight = Math.pow(0.5, index); 
         
         totalScore += (statProb * weight);
@@ -532,7 +526,6 @@ function calculateHighRollChance(avgStatGains, targetStats, priorityOrder, selec
     if (totalWeight <= 0) return 1.0;
 
     const result = totalScore / totalWeight;
-    // Boost the result slightly to reflect that 'High Roll' implies the BEST of several runs
     const optimisticResult = Math.pow(result, 0.8); 
 
     return parseFloat(optimisticResult.toFixed(4));
@@ -555,7 +548,6 @@ export function CalculateDeckGains(
     const cardCounts = [0, 0, 0, 0, 0];
     selectedCards.forEach(c => { if (c?.type < 5) cardCounts[c.type]++; });
 
-    // 1. Pre-Allocation: Add Baseline + Events + Starting Stats immediately
     const scenarioBaseline = [160, 100, 130, 90, 200]; 
     for (let i = 0; i < 5; i++) {
         finalAvgStats[i] = (Number(additionalStats[i]) || 0) + scenarioBaseline[i];
@@ -568,29 +560,23 @@ export function CalculateDeckGains(
         }
     });
 
-    // 2. Greedy Priority Saturation
-    // Instead of splitting turns, we give the top priority ~50-60% of ALL turns immediately.
     priorityOrder.forEach((statType, index) => {
         if (statType === undefined || remainingTurns <= 0) return;
 
-        // Allocation logic: Priority 0 gets the massive lion's share.
         const allocationMap = [0.55, 0.25, 0.12, 0.05, 0.03];
         let turnsToSpend = remainingTurns * (allocationMap[index] || 0.02);
         
-        // If we have cards for this stat, we 'hunt' it more aggressively
         const concentration = (cardCounts[statType] || 0) / selectedCards.length;
         turnsToSpend += (remainingTurns * concentration * 0.2);
 
         turnsToSpend = Math.min(remainingTurns, turnsToSpend);
         remainingTurns -= turnsToSpend;
 
-        const levelScaling = 1.4; // Average Lv 4 training
+        const levelScaling = 1.4;
         const base = (weights?.bondedTrainingGain?.[statType] || [0,0,0,0,0,0]).map(v => (Number(v) || 0) * levelScaling);
         
-        // Apply Training Gains
         for (let i = 0; i < 5; i++) finalAvgStats[i] += (base[i] || 0) * turnsToSpend;
 
-        // Card Bonuses
         selectedCards.forEach(card => {
             const isSpec = card.type === statType;
             const prob = isSpec ? (card.rainbowSpecialty || 0.25) : 0.08;
